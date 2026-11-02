@@ -1,69 +1,63 @@
-import Image from "next/image";
-
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+'use client';
+import {useState,useEffect,useCallback} from 'react';
+import {createClient} from '@supabase/supabase-js';
+import {BarChart,Bar,CartesianGrid,XAxis,YAxis,Tooltip,ResponsiveContainer,LineChart,Line} from 'recharts';
+import {BookOpen,ChartNoAxesCombined,Brain,ClipboardList,GraduationCap,LogOut,Timer,RefreshCw} from 'lucide-react';
+const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase=url&&key?createClient(url,key):null;
+export default function Home(){
+ const [session,setSession]=useState(null),[ready,setReady]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[signup,setSignup]=useState(false),[message,setMessage]=useState('');
+ const [tab,setTab]=useState('Overview'),[data,setData]=useState(null),[quizzes,setQuizzes]=useState([]),[quiz,setQuiz]=useState(null),[answers,setAnswers]=useState({}),[index,setIndex]=useState(0),[attempt,setAttempt]=useState(null),[history,setHistory]=useState(null),[insights,setInsights]=useState(null),[busy,setBusy]=useState(false),[activeSession,setActiveSession]=useState(null);
+ useEffect(()=>{if(!supabase){setReady(true);return}supabase.auth.getSession().then(({data})=>{setSession(data.session);setReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);
+ const api=useCallback(async(path,opts={})=>{const {data:{session:s}}=await supabase.auth.getSession();if(!s)throw Error('Please sign in');const r=await fetch('/api/'+path,{...opts,headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,...opts.headers}});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j},[]);
+ const refresh=useCallback(async()=>{try{const [d,q]=await Promise.all([api('dashboard'),api('quiz')]);setData(d);setQuizzes(q)}catch(e){setMessage(e.message)}},[api]);
+ useEffect(()=>{if(session)refresh();else{setData(null);setQuiz(null)}},[session,refresh]);
+ async function auth(e){e.preventDefault();setMessage('');setBusy(true);try{const {error}=signup?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});if(error)throw error;if(signup)setMessage('Account created. Check your email for a confirmation link if required.')}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ async function openQuiz(id){setBusy(true);setMessage('');try{const q=await api('quiz?id='+encodeURIComponent(id));setQuiz(q);setIndex(0);setAttempt(null);const saved=localStorage.getItem('edupulse:'+session.user.id+':'+id);setAnswers(saved?JSON.parse(saved):{});setTab('Quizzes')}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ function choose(qid,oid){const next={...answers,[qid]:oid};setAnswers(next);localStorage.setItem('edupulse:'+session.user.id+':'+quiz.id,JSON.stringify(next))}
+ async function submitQuiz(){if(!quiz)return;setBusy(true);setMessage('');try{const submission_id=crypto.randomUUID();const result=await api('attempts',{method:'POST',body:JSON.stringify({quiz_id:quiz.id,submission_id,answers:Object.entries(answers).map(([question_id,option_id])=>({question_id,option_id}))})});localStorage.removeItem('edupulse:'+session.user.id+':'+quiz.id);setAttempt(result);await refresh()}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ async function loadHistory(id){try{setHistory(await api('attempts?id='+id));setTab('History')}catch(e){setMessage(e.message)}}
+ async function sessionAction(action,extras={}){setBusy(true);try{const r=await api('sessions',{method:'POST',body:JSON.stringify({action,...extras})});if(action==='start')setActiveSession(r);if(action==='end')setActiveSession(null);await refresh()}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ async function getInsights(){setBusy(true);try{setInsights(await api('insights'));setTab('AI Insights')}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ if(!ready)return <main className="p-12">Loading…</main>;
+ if(!supabase)return <main className="max-w-xl mx-auto p-12"><h1>EduPulse AI</h1><div className="panel mt-6">Configure your Supabase project in <code>.env.local</code> and restart the dev server. See README.md for setup steps.</div></main>;
+ if(!session)return <main className="min-h-screen flex items-center justify-center p-5"><div className="panel w-full max-w-md"><div className="flex gap-3 items-center mb-5"><GraduationCap size={34} color="#a5b4fc"/><h1>EduPulse AI</h1></div><p className="muted mb-6">Your personalized learning companion.</p><form onSubmit={auth} className="space-y-4"><label className="block">Email<input className="field mt-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label className="block">Password<input className="field mt-2" type="password" minLength="6" value={password} onChange={e=>setPassword(e.target.value)} required/></label><button className="btn w-full" disabled={busy}>{signup?'Create account':'Sign in'}</button></form><button className="mt-5 text-sm" onClick={()=>setSignup(!signup)}>{signup?'Already have an account? Sign in':'New student? Create an account'}</button>{message&&<p role="alert" className="mt-4 text-amber-300">{message}</p>}</div></main>;
+ const enrolled=data?.enrollments||[],sessions=data?.sessions||[],attempts=data?.attempts||[];const avg=attempts.length?Math.round(attempts.reduce((s,a)=>s+a.percentage,0)/attempts.length):0;const completion=enrolled.length?Math.round(enrolled.reduce((s,e)=>s+Number(e.progress_percent),0)/enrolled.length):0;const mins=sessions.reduce((s,v)=>s+(v.minutes_spent||0),0);const chart=attempts.slice().reverse().map((a,i)=>({name:'Attempt '+(i+1),score:a.percentage}));
+ const nav=[['Overview',ChartNoAxesCombined],['Courses',BookOpen],['Quizzes',ClipboardList],['History',RefreshCw],['AI Insights',Brain]];
+ return <div className="min-h-screen md:flex"><aside className="md:w-60 p-5 bg-[#111a30] border-r border-[#2b3855] md:min-h-screen"><div className="flex items-center gap-2 mb-9"><GraduationCap color="#a5b4fc"/><b className="text-xl">EduPulse AI</b></div><div className="flex md:flex-col gap-2 overflow-x-auto">{nav.map(([name,Icon])=><button key={name} onClick={()=>{setTab(name);if(name==='AI Insights'&&!insights)getInsights();if(name==='Quizzes'){setQuiz(null);setAttempt(null)}}} className={'navbtn flex items-center gap-3 whitespace-nowrap '+(tab===name?'active':'')}><Icon size={18}/>{name}</button>)}</div>
+ <div className="mt-10 pt-5 border-t border-[#2b3855]">
+   <div className="flex items-center gap-3 mb-4 min-w-0">
+     <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-200 font-semibold shrink-0">
+       {session.user.email?.charAt(0).toUpperCase()}
+     </div>
+ 
+     <div className="min-w-0 flex-1">
+       <p className="text-sm font-semibold text-white">
+         Student account
+       </p>
+       <p
+         className="text-xs text-slate-400 truncate"
+         title={session.user.email}
+       >
+         {session.user.email}
+       </p>
+     </div>
+   </div>
+ 
+   <button
+     type="button"
+     className="w-full flex items-center justify-center gap-2 rounded-xl border border-[#344563] bg-[#1b2942] px-4 py-3 text-sm font-medium text-slate-200 hover:bg-[#283956] transition-colors"
+     onClick={() => supabase.auth.signOut()}
+   >
+     <LogOut size={16} />
+     Sign out
+   </button>
+ </div>
+</aside><main className="flex-1 p-5 md:p-9 max-w-6xl mx-auto w-full"><header className="mb-7"><div className="tag mb-3">STUDENT LEARNING PORTAL</div><h1>{tab}</h1><p className="muted">Track progress, practice quizzes, and improve with data-driven feedback.</p></header>{message&&<div role="alert" className="panel mb-5 text-amber-300">{message}<button className="ml-3 underline" onClick={()=>setMessage('')}>Dismiss</button></div>}
+ {tab==='Overview'&&<><div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">{[['Enrolled courses',enrolled.length],['Course completion',completion+'%'],['Learning minutes',mins],['Average quiz score',attempts.length?avg+'%':'—']].map(([l,v])=><div className="panel" key={l}><div className="muted">{l}</div><div className="stat">{v}</div></div>)}</div><div className="grid lg:grid-cols-2 gap-5"><div className="panel"><h2>Assessment performance</h2>{chart.length?<div className="h-64"><ResponsiveContainer width="100%" height={250} minWidth={200}><LineChart data={chart}><CartesianGrid stroke="#2d3956"/><XAxis dataKey="name" stroke="#9baecc"/><YAxis domain={[0,100]} stroke="#9baecc"/><Tooltip/><Line dataKey="score" stroke="#818cf8" strokeWidth={3}/></LineChart></ResponsiveContainer></div>:<p className="muted">Complete a quiz to see your score trend.</p>}</div><div className="panel"><h2>Recent learning sessions</h2>{sessions.length?sessions.slice(0,5).map(s=><div key={s.id} className="py-3 border-b border-[#2b3855]">{new Date(s.started_at).toLocaleString()} · {s.minutes_spent??'In progress'} minutes</div>):<p className="muted">No learning sessions yet. Enroll in a course to begin.</p>}</div></div></>}
+ {tab==='Courses'&&<div className="space-y-4">{enrolled.map(e=><div className="panel" key={e.id}><h2>{e.courses?.title}</h2><p className="muted mb-4">{e.courses?.description}</p><div className="h-2 rounded bg-[#303c5b] mb-3"><div className="h-2 rounded bg-indigo-400" style={{width:e.progress_percent+'%'}}/></div><div className="flex gap-2 items-center flex-wrap"><span className="muted">{e.progress_percent}% complete</span><button className="btn-alt" disabled={busy||!!activeSession} onClick={()=>sessionAction('start',{course_id:e.courses.id})}>Start session</button><button className="btn-alt" disabled={busy} onClick={()=>sessionAction('progress',{course_id:e.courses.id,progress_percent:Math.min(100,Number(e.progress_percent)+10)})}>Mark +10%</button></div></div>)}{activeSession&&<div className="panel"><p>Session started at {new Date(activeSession.started_at).toLocaleTimeString()}</p><button className="btn mt-3" disabled={busy} onClick={()=>sessionAction('end',{session_id:activeSession.id})}>End and save session</button></div>}<h2>Available courses</h2>{quizzes.filter(q=>!enrolled.some(e=>e.courses?.id===q.course_id)).map(q=><div key={q.id} className="panel flex justify-between items-center"><span>{q.courses?.title}</span><button className="btn" disabled={busy} onClick={()=>sessionAction('enroll',{course_id:q.course_id})}>Enroll</button></div>)}</div>}
+ {tab==='Quizzes'&&(!quiz?<div className="grid md:grid-cols-2 gap-4">{quizzes.map(q=><div key={q.id} className="panel"><h2>{q.title}</h2><p className="muted mb-4">{q.courses?.title}</p><button className="btn" disabled={busy} onClick={()=>openQuiz(q.id)}>Start assessment</button></div>)}</div>:attempt?<div className="panel"><h2>Assessment complete</h2><div className="stat">{attempt.percentage}%</div><p className="muted mb-5">{attempt.score} correct out of {attempt.total}</p><h2>Answer review</h2>{attempt.details.map((d,i)=><div key={d.question_id} className="border-b border-[#2b3855] py-4"><b>{i+1}. {d.question_snapshot}</b><p className={d.is_correct?'text-emerald-300':'text-amber-300'}>Your answer: {d.selected_snapshot||'Skipped'}</p><p>Correct answer: {d.correct_snapshot}</p><p className="muted">{d.explanation_snapshot}</p></div>)}<button className="btn mt-5" onClick={()=>{setAttempt(null);setAnswers({});setIndex(0)}}>Retake quiz</button><button className="btn-alt ml-3" onClick={()=>{setQuiz(null);setAttempt(null)}}>All quizzes</button></div>:<div className="panel"><div className="flex justify-between gap-3 mb-4"><h2>{quiz.title}</h2><span className="tag">Question {index+1} of {quiz.questions.length}</span></div><div className="h-2 bg-[#303c5b] rounded mb-7"><div className="h-2 bg-indigo-400 rounded" style={{width:((index+1)/quiz.questions.length*100)+'%'}}/></div>{quiz.questions[index]&&<><h2>{quiz.questions[index].prompt}</h2>{quiz.questions[index].question_options.map(o=><button key={o.id} className={'option '+(answers[quiz.questions[index].id]===o.id?'selected':'')} onClick={()=>choose(quiz.questions[index].id,o.id)}>{o.label}</button>)}<div className="flex flex-wrap gap-3 mt-6"><button className="btn-alt" disabled={index===0} onClick={()=>setIndex(index-1)}>Previous</button><button className="btn-alt" onClick={()=>{const n={...answers};delete n[quiz.questions[index].id];setAnswers(n);localStorage.setItem('edupulse:'+session.user.id+':'+quiz.id,JSON.stringify(n))}}>Skip / clear</button>{index<quiz.questions.length-1?<button className="btn" onClick={()=>setIndex(index+1)}>Next</button>:<button className="btn" disabled={busy} onClick={submitQuiz}>Submit quiz</button>}</div></>}</div>)}
+ {tab==='History'&&<><div className="space-y-3 mb-6">{attempts.length?attempts.map(a=><button key={a.id} className="panel w-full text-left flex justify-between" onClick={()=>loadHistory(a.id)}><span>{a.quizzes?.title} · {new Date(a.submitted_at).toLocaleString()}</span><b>{a.percentage}%</b></button>):<p className="muted">No attempts yet. Each retake will appear here separately.</p>}</div>{history&&<div className="panel"><h2>Historical review — {history.percentage}%</h2>{history.attempt_answers?.map((a,i)=><div key={a.id} className="py-3 border-b border-[#2b3855]"><b>{i+1}. {a.question_snapshot}</b><p className={a.is_correct?'text-emerald-300':'text-amber-300'}>Your answer: {a.selected_snapshot||'Skipped'}</p><p>Correct answer: {a.correct_snapshot}</p><p className="muted">{a.explanation_snapshot}</p></div>)}</div>}</>}
+ {tab==='AI Insights'&&<div className="panel"><div className="flex justify-between items-center"><h2>Learning engagement insights</h2><button className="btn-alt" disabled={busy} onClick={getInsights}>Refresh</button></div>{insights?<><div className="tag mb-4">Disengagement risk: {insights.risk}</div><p className="muted mb-5">{insights.disclaimer}</p><h2>Recommendations</h2>{insights.tips.map((t,i)=><p className="mb-3" key={i}>• {t}</p>)}{insights.ai&&<><h2 className="mt-6">AI study coach</h2><p>{insights.ai}</p></>}</>:<p className="muted">Loading insights…</p>}</div>}
+ <footer className="muted mt-12 text-xs">EduPulse AI · Student data is stored per authenticated account · Engagement estimates are illustrative, not validated predictions</footer></main></div>
 }

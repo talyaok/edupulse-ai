@@ -1,26 +1,170 @@
 @import "tailwindcss";
+:root{color-scheme:dark}body{background:#0b1020;color:#e8efff;font-family:Arial,Helvetica,sans-serif}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:#151e35;border:1px solid #2b3855;border-radius:18px;padding:22px}.field{width:100%;background:#0c1427;border:1px solid #40506f;border-radius:10px;padding:12px;color:white}.btn{background:#6366f1;border-radius:10px;padding:10px 16px;font-weight:600}.btn-alt{background:#273454;border-radius:10px;padding:10px 16px}.muted{color:#9baecc}.navbtn{padding:11px 14px;border-radius:10px;text-align:left}.navbtn.active{background:#353b85}.stat{font-size:30px;font-weight:700;margin-top:12px}.tag{display:inline-block;background:#243555;padding:4px 9px;border-radius:99px;font-size:12px}.option{display:block;width:100%;text-align:left;border:1px solid #40506f;border-radius:12px;padding:13px;margin-top:10px}.option.selected{border-color:#818cf8;background:#292e62}a{color:#a5b4fc}h1{font-size:28px;font-weight:800}h2{font-size:19px;font-weight:700;margin-bottom:12px}p{line-height:1.6}
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* EduPulse AI layout fix */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (min-width: 768px) {
+    body > div {
+      min-height: 100vh;
+    }
+  
+    aside {
+      width: 250px !important;
+      min-width: 250px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px !important;
+      background: #111a30;
+      border-right: 1px solid #2b3855;
+    }
+  
+    aside > div:nth-child(2) {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  
+    aside > div:nth-child(3) {
+      margin-top: auto;
+    }
+  
+    main {
+      min-width: 0;
+    }
   }
-}
+  
+  @media (min-width: 768px) {
+    .min-h-screen.md\:flex {
+      display: flex !important;
+    }
+  
+    .grid.sm\:grid-cols-2.xl\:grid-cols-4 {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 16px;
+    }
+  
+    .grid.lg\:grid-cols-2 {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 20px;
+    }
+  }
+  
+  aside .navbtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  aside .navbtn:hover {
+    background: #273454;
+  }
+  
+  aside button {
+    transition: background 0.2s ease;
+  }
+  
+  aside .border-t {
+    border-top: 1px solid #2b3855;
+    padding-top: 20px;
+  }
+  
+  aside .rounded-full {
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  aside .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+  
+
+/* Final sidebar and dashboard alignment fixes */
+
+@media (min-width: 768px) {
+    .min-h-screen.md\:flex > main {
+      flex: 1 1 0% !important;
+      width: calc(100% - 250px) !important;
+      max-width: none !important;
+      padding: 36px !important;
+      margin: 0 !important;
+    }
+  }
+  
+  aside > div:last-child {
+    width: 100%;
+    margin-top: auto;
+  }
+  
+  aside > div:last-child > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  aside > div:last-child > div:first-child > div:first-child {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #353b85;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  aside > div:last-child > button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: #273454;
+    border-radius: 12px;
+    color: white;
+  }
+  
+  aside > div:last-child > button:hover {
+    background: #353b85;
+  }
+
+  
+
+/* Dashboard spacing improvements */
+
+@media (min-width: 768px) {
+    main .grid.sm\:grid-cols-2.xl\:grid-cols-4 {
+      gap: 20px !important;
+      margin-bottom: 24px !important;
+    }
+  
+    main .grid.lg\:grid-cols-2 {
+      gap: 24px !important;
+    }
+  }
+  
+  main .panel {
+    padding: 24px;
+  }
+  
+  main header {
+    margin-bottom: 28px;
+  }
+  
+  main footer {
+    margin-top: 36px;
+  }
+  
